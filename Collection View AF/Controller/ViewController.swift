@@ -8,30 +8,6 @@
 
 import UIKit
 
-extension UIImageView {
-    func downloaded(from url: URL, contentMode mode: UIView.ContentMode = .scaleAspectFit) {
-        contentMode = mode
-        URLSession.shared.dataTask(with: url) { data, response, error in
-            guard
-                let httpURLResponse = response as? HTTPURLResponse, httpURLResponse.statusCode == 200,
-                let mimeType = response?.mimeType, mimeType.hasPrefix("image"),
-                let data = data, error == nil,
-                let image = UIImage(data: data)
-                else { return }
-            DispatchQueue.main.async() {
-                self.image = image
-            }
-        }.resume()
-    }
-    
-    func downloaded(from link: String, contentMode mode: UIView.ContentMode = .scaleAspectFit) {
-        guard let url = URL(string: link) else { return }
-        downloaded(from: url, contentMode: mode)
-    }
-}
-
-
-
 class ViewController: UIViewController, UICollectionViewDelegate, UICollectionViewDataSource {
     
     @IBOutlet weak var collectionView: UICollectionView!
@@ -49,7 +25,6 @@ class ViewController: UIViewController, UICollectionViewDelegate, UICollectionVi
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         
-        
         return heroes.count
     }
     
@@ -60,7 +35,13 @@ class ViewController: UIViewController, UICollectionViewDelegate, UICollectionVi
         cell.nameLabel.text = heroes[indexPath.row].localized_name?.capitalized
         
         let imageURL = "https://api.opendota.com\(heroes[indexPath.row].img ?? "")"
-        cell.profileImage.downloaded(from: imageURL)
+        
+        ImageService.getImage(url: URL(string: imageURL)!) { image in
+            
+            //DispatchQueue.main.async {
+                cell.profileImage.image = image
+            //}
+        }
         
         cell.profileImage.clipsToBounds = true
         cell.profileImage.layer.cornerRadius = cell.profileImage.frame.height / 2
@@ -69,6 +50,24 @@ class ViewController: UIViewController, UICollectionViewDelegate, UICollectionVi
         return cell
     }
     
+    
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        
+        let vc = storyboard?.instantiateViewController(withIdentifier: "DetailViewController") as! DetailViewController
+        
+        vc.name = heroes[indexPath.row].localized_name ?? "Not Found"
+        vc.baseHealth = heroes[indexPath.row].base_health ?? 0
+        vc.primaryAttacker = heroes[indexPath.row].primary_attr ?? "Not Found"
+        vc.attackType = heroes[indexPath.row].attack_type ?? "Not Found"
+        vc.attackRange = heroes[indexPath.row].attack_range ?? 0
+        vc.attackRate = heroes[indexPath.row].attack_rate ?? 0
+        vc.moveSpeed = heroes[indexPath.row].move_speed ?? 0
+        vc.legs = heroes[indexPath.row].legs ?? 0
+        vc.roles = heroes[indexPath.row].roles ?? ["Not Found"]
+        vc.image = heroes[indexPath.row].img ?? ""
+        
+        self.navigationController?.pushViewController(vc, animated: true)
+    }
     
     
     func getNamesFromServer() {
@@ -82,7 +81,7 @@ class ViewController: UIViewController, UICollectionViewDelegate, UICollectionVi
                 catch {
                     print("error")
                 }
-                DispatchQueue.main.async {
+                DispatchQueue.main.sync {
                     self.collectionView.reloadData()
                 }
             }

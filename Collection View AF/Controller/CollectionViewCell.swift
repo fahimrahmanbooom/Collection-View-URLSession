@@ -14,4 +14,7 @@ class CollectionViewCell: UICollectionViewCell {
     
     @IBOutlet weak var nameLabel: UILabel!
 
+    override func prepareForReuse() {
+        profileImage.image = nil
+    }
 }
